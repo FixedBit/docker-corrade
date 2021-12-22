@@ -128,7 +128,7 @@ TIMESTAMP=$(date +%s)
 echo "Build Opts: ${OPTS}${IMAGE_NAME_OUT}" > ${BUILD_LOG}
 printf "\n\nTAIL TIMESTAMP ${TIMESTAMP}\n\n" >> ${BUILD_LOG}
 printf "\n\n*** BUILDING IMAGE ***\n\n" >> ${BUILD_LOG}
-[ ! -z "${BUILD_COMMAND}" ] && { eval ${BUILD_COMMAND} 2>${BUILD_LOG}; } || { echo "No build command found" >> ${BUILD_LOG}; }
+[ ! -z "${BUILD_COMMAND}" ] && { eval ${BUILD_COMMAND} 2>${BUILD_LOG} 1>&2; } || { echo "No build command found" >> ${BUILD_LOG}; }
 RESULT=$?
 echo "BUILD RESULT: ${RESULT}"
 if [ $RESULT -eq 0 ] && [ "${IMAGE_UPLOAD}" == "true" ] && [ "${CROSS_BUILD}" != "true" ] && [ ! -z "${DOCKER_REGISTRY}" ]; then
