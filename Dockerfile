@@ -4,8 +4,7 @@ FROM mono:slim
 
 LABEL maintainer=jason@fixedbit.com
 
-ARG CORRADE_VERSION \
-    CORRADE_ZIP_URL
+ARG CORRADE_VERSION
 
 ENV CORRADE_UID=999 \
     CORRADE_GID=999 \
@@ -24,11 +23,11 @@ RUN groupadd --gid $CORRADE_GID $CORRADE_USER \
 EXPOSE 54377 8080
 
 ADD ./files/run.sh /sbin/run
-ADD $CORRADE_ZIP_URL /opt/corrade.zip
 ADD ./files/setup.sh /opt/setup.sh
 
 RUN chmod +x /opt/setup.sh; \
-    /opt/setup.sh  
+    /opt/setup.sh; \
+    chmod +x /sbin/run; 
 
 VOLUME ["/config", "/corrade/Cache", "/corrade/State", "/corrade/Logs", "/corrade/Databases"]
 WORKDIR /corrade
