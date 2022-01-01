@@ -1,12 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# This script is ran inside the builx container and performs our setup
+# and then deletes itself all neat and tidy.
 
+# Stop script if we hit an error
 set -e
 
+# Setup our needed packages and install them
 PACKAGES="procps tini gosu"
 EXTRA_PACKAGES="unzip curl"
-apt-get update && apt-get dist-upgrade -y
-apt-get install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES
+apt update; apt install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES
 
+# Figure out what build arch we need to use based on buildx environment
 dpkgArch="$(dpkg --print-architecture)"
 ARCH=
 case "${dpkgArch##*-}" in 
@@ -16,41 +20,27 @@ case "${dpkgArch##*-}" in
     *) echo "unsupported architecture"; exit 1 ;; 
 esac
 
-echo "Downloading Corrade URL: https://corrade.grimore.org/download/corrade/linux-${ARCH}/Corrade-${CORRADE_VERSION}-linux-${ARCH}.zip"
+# Download Corrade
 curl https://corrade.grimore.org/download/corrade/linux-${ARCH}/Corrade-${CORRADE_VERSION}-linux-${ARCH}.zip --output /opt/corrade.zip
 
-echo "Unpacking Corrade..."
-unzip /opt/corrade.zip -d /corrade 
+# Unpack Corrade...
+unzip -q /opt/corrade.zip -d /corrade 
 
-echo "Fixing directories..."
-if [ ! -d /corrade/Cache ]; then
-    mkdir /corrade/Cache
-fi
-if [ ! -d /corrade/State ]; then
-    mkdir /corrade/State
-fi
-if [ ! -d /corrade/Logs ]; then
-    mkdir /corrade/Logs
-fi
-if [ ! -d /corrade/Databases ]; then
-    mkdir /corrade/Databases
-fi
-if [ ! -d /config ]; then
-    mkdir /config
-fi
+# Fix directories...
+[ ! -d /corrade/Cache ] && mkdir /corrade/Cache
+[ ! -d /corrade/State ] && mkdir /corrade/State
+[ ! -d /corrade/Logs ] && mkdir /corrade/Logs
+[ ! -d /corrade/Databases ] && mkdir /corrade/Databases
+[ ! -d /config ] && mkdir /config
 
-echo "Fixing permissions..."
+# Fixing permissions...
 chown -R corrade:corrade /corrade /config
 
-echo "Deleting unneeded files..."
+# Deleting and cleaning unneeded files...
 rm -rf /opt/corrade.zip
+apt autoremove -y; apt remove --purge -y $EXTRA_PACKAGES; rm -rf /var/lib/apt/lists/*
 
-echo "Cleaning up APT..."
-apt-get autoremove -y
-apt-get remove --purge -y $EXTRA_PACKAGES
-rm -rf /var/lib/apt/lists/*
-
-echo "Deleting ourself - Filename: $0"
+# Remove this script from container
 rm -- "$0"
 
 exit 0

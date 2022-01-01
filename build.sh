@@ -116,9 +116,9 @@ fi
 
 [ "${CROSS_BUILD}" == "true" ] && {
      [ "${IMAGE_UPLOAD}" == "true" ] && { EXTRA_CROSS_OPTS='--push'; } || { EXTRA_CROSS_OPTS=''; };
-     BUILD_COMMAND="docker buildx build --progress=plain --build-arg CORRADE_VERSION=${CORRADE_VERSION} --platform linux/amd64,linux/arm64,linux/arm/v7 ${OPTS}${IMAGE_NAME_OUT} ${EXTRA_CROSS_OPTS} ${DOCKER_FILE_LOCATION}"; 
+     BUILD_COMMAND="docker buildx build --build-arg CORRADE_VERSION=${CORRADE_VERSION} --platform linux/amd64,linux/arm64,linux/arm/v7 ${OPTS}${IMAGE_NAME_OUT} ${EXTRA_CROSS_OPTS} ${DOCKER_FILE_LOCATION}"; 
    } || {
-     BUILD_COMMAND="docker build --progress=plain --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${IMAGE_NAME_OUT} ${DOCKER_FILE_LOCATION}"
+     BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${IMAGE_NAME_OUT} ${DOCKER_FILE_LOCATION}"
    }
 
 [ ! -d ${BUILD_LOG_DIR} ] && mkdir -p ${BUILD_LOG_DIR}
