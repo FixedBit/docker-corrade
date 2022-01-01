@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  corrade:
+    image: fixedbit/corrade:latest
+    container_name: corrade
+    tty: true
+    restart: unless-stopped
+    ports:
+      - "54377:54377"
+      - "8080:8080"
+    volumes:
+      - "./data/config:/config"
+      - "./data/Cache:/corrade/Cache"
+      - "./data/Logs:/corrade/Logs"
+      - "./data/State:/corrade/State"
+      - "./data/Databases:/corrade/Databases"

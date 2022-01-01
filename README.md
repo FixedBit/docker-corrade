@@ -1,4 +1,6 @@
 # Corrade Docker Build Script
+[![Docker Hub Pulls](https://img.shields.io/docker/pulls/fixedbit/corrade?style=plastic)](https://hub.docker.com/r/fixedbit/corrade)
+
 
 This area will be filled in more later but the gist of it is...
 
