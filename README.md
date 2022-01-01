@@ -1,6 +1,6 @@
 # Corrade Docker Build Script
+[![Docker Hub Pulls](https://img.shields.io/docker/pulls/fixedbit/corrade?style=plastic)](https://hub.docker.com/r/fixedbit/corrade) [![Build Status](https://app.travis-ci.com/FixedBit/docker-corrade.svg?branch=main)](https://app.travis-ci.com/FixedBit/docker-corrade)
 ## What is Corrade?
-[![Docker Hub Pulls](https://img.shields.io/docker/pulls/fixedbit/corrade?style=plastic)](https://hub.docker.com/r/fixedbit/corrade)
 
 [Corrade](https://grimore.org/secondlife/scripted_agents/corrade) is an amazing Second Life bot platform by [Wizardry and Steamworks](https://grimore.org/).
 
