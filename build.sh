@@ -20,16 +20,12 @@ KEEP_BUILD_LOG=true
 SOURCE_FILE=$PWD/_source.sh
 # Do you want to cross-build this image?
 CROSS_BUILD=false
+# Is this to be tagged as latest?
+TAG_LATEST=false
 
 # I suggest do not touch these unless you know what you are doing!
+
 # Set the build log and build file directory
-
-# This is to allow me to set this up on my local machine and not change public scripts
-[ ! -z "${CROSS_BUILD_OVERRIDE}" ] && CROSS_BUILD="${CROSS_BUILD_OVERRIDE}"
-[ ! -z "${IMAGE_UPLOAD_OVERRIDE}" ] && IMAGE_UPLOAD="${IMAGE_UPLOAD_OVERRIDE}"
-[ ! -z "${IMAGE_NAME_OVERRIDE}" ] && IMAGE_NAME="${IMAGE_NAME_OVERRIDE}"
-[ ! -z "${DOCKER_REGISTRY_OVERRIDE}" ] && DOCKER_REGISTRY="${DOCKER_REGISTRY_OVERRIDE}"
-
 BUILD_LOG_DIR=$PWD/build_logs
 BUILD_LOG=$BUILD_LOG_DIR/build.txt
 # Set our script name for use below
@@ -40,43 +36,81 @@ DOCKER_FILE_LOCATION='.'
 # You need help with this?
 show_help()
 {
-    echo "** ${SCRIPT_NAME} HELP **"
-    echo "* Any of these flags may be combined"
+    echo "* ~~ Any of these flags may be combined ~~"
     echo "* '${SCRIPT_NAME} -n' sets no cache so it always pulls latest containers"
     echo "* '${SCRIPT_NAME} -c' sets crossbuilding between all supported Linux platforms"
+    echo "* '${SCRIPT_NAME} -l' sets current build as latest"
     echo "* '${SCRIPT_NAME} -p' force pulls latest of every Docker image"
+    echo "* '${SCRIPT_NAME} -u' Uploads the image to the registry"
+    echo "* '${SCRIPT_NAME} -r docker-registry' Sets a docker registry"
     echo "* '${SCRIPT_NAME} -s source.sh' sets a script to source variables from"
     echo "* '${SCRIPT_NAME} -i name-of-image' overwrites the pre-set image name used for building"
     echo "* '${SCRIPT_NAME} -f Dockerfile' OPTIONAL - allows you to point this script to a different Dockerfile"
 }
 
-# check if we got a help flag of some type
-[ ! -z "$1" ] && [ "$1" == "-h" ] && show_help && exit 1
-
-# Set our arguments passed into an array and iterate over them
-argArr=( "$@" )
-for ((i=0;i < ${#argArr[@]};i++)) {
-    # Get our current argument and the next for setting variables
-    CURRENT=${argArr[i]}
-    NEXT=${argArr[$((i + 1))]}
-    # We go through each of the arguments passed and set as neccessary
-    # Check 'docker-build.sh -h' for help on what each does
-    if [ "${CURRENT}" == "-c" ]; then
-      CROSS_BUILD=true
-    elif [ "${CURRENT}" == "-n" ]; then
-      OPTS="--no-cache ${OPTS}"
-    elif [ "${CURRENT}" == "-p" ]; then
-      OPTS="--pull ${OPTS}"
-    elif [ "${CURRENT}" == "-f" ]; then
-      [[ $NEXT != -* ]] && [[ ! -z $NEXT ]] && DOCKER_FILE_LOCATION="-f ${NEXT} ." && i=$((i + 1)) || ERRORS+=("Invalid Dockerfile path passed to -f")
-    elif [ "${CURRENT}" == "-i" ]; then
-      [[ $NEXT != -* ]] && [[ ! -z $NEXT ]] && IMAGE_NAME_OUT="-t ${NEXT}" && i=$((i + 1)) || ERRORS+=("Invalid image name passed to -i")
-    elif [ "${CURRENT}" == "-s" ]; then
-      [[ $NEXT != -* ]] && [[ $NEXT == *.sh ]] && SOURCE_FILE="${NEXT}" && i=$((i + 1)) || ERRORS+=("Invalid shell script passed to -s")
-    else
-      ERRORS+=("${CURRENT} is not a valid argument for ${SCRIPT_NAME}")
-    fi
-}
+# Iterate over arguments and process them
+while (( "$#" )); do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -c|--cross-build)
+            echo "Cross building for multiple platforms"
+            CROSS_BUILD=true
+            ;;
+        -l|--latest)
+            echo "Tagging this build as \"latest\""
+            TAG_LATEST=true
+            ;;
+        -n|--no-cache)
+            echo "Forcing full build with no cache"
+            OPTS="--no-cache ${OPTS}"
+            ;;
+        -p|--pull)
+            echo "Pull Enabled"
+            OPTS="--pull ${OPTS}"
+            ;;
+        -u|--upload)
+            echo "Upload Enabled"
+            IMAGE_UPLOAD=true
+            ;;
+        -r|--registry)
+            [[ $2 != -* && ! -z $2 ]] && { DOCKER_REGISTRY="${2}"; echo "Using Docker Registry: $2"; } || { ERRORS+=("Invalid Docker Registry passed to -r"); }
+            shift
+            ;;
+        -i|--image)
+            [[ $2 != -* && ! -z $2 ]] && { IMAGE_NAME_OUT="-t ${2}"; echo "Using image name: $2"; } || { ERRORS+=("Invalid image name passed to -i"); }
+            shift
+            ;;
+        -f|--file)
+            [[ $2 != -* && ! -z $2 && -f $2 ]] && { DOCKER_FILE_LOCATION="-f ${2} ."; echo "Using Dockerfile: $2"; } || { 
+                    [[ $2 != -* && ! -f $2 && ! -z $2 ]] && {
+                        ERROR="\"$2\" does not exist to be used for a '-f' docker file";
+                    } || {
+                        ERROR="No filename for -f Dockerfile was passed";
+                    }; 
+                    ERRORS+=("${ERROR}");
+                }
+            shift
+            ;;
+        -s|--source)
+            [[ $2 != -* && ! -z $2 && -f $2 ]] && { SOURCE_FILE="source ${2}"; echo "Using source file: $2"; } || { 
+                    [[ $2 != -* && ! -f $2 && ! -z $2 ]] && {
+                        ERROR="\"$2\" does not exist to be used for a '-s' source file";
+                    } || {
+                        ERROR="No filename for -s Source File was passed";
+                    }; 
+                    ERRORS+=("${ERROR}");
+                }
+            shift
+            ;;
+        *)
+            ERRORS+=("${1} is not a valid argument for ${SCRIPT_NAME}")
+            ;;
+    esac
+    shift
+done
 
 # If DOCKER_REGISTRY IS blank, IMAGE_NAME_OUT NOT blank and IMAGE_NAME NOT blank
 if [ -z "${DOCKER_REGISTRY}" ] && [ -z "${IMAGE_NAME_OUT}" ] && [ ! -z "${IMAGE_NAME}" ]; then
@@ -89,16 +123,11 @@ elif [ -z "${IMAGE_NAME_OUT}" ] && [ -z "${IMAGE_NAME}" ]; then
     ERRORS+=("You must pass an image name in with '-i' or set 'IMAGE_NAME' in ${SCRIPT_NAME}")
 fi
 
-
-# If we have any errors then display them
-if [ ${#ERRORS[@]} -gt 0 ]; then
-    # Display errors
-    echo "** THE FOLLOWING ERRORS WERE RETURNED **"
-    for error in "${ERRORS[@]}"
-    do
-        echo $error
+if [[ ! -z ${ERRORS} ]]; then
+    printf "\n~~ The following Errors Were Found ~~\n"
+    for error in "${ERRORS[@]}"; do
+        printf "\n~ ${error}\n"
     done
-    # Exit script
     exit 1
 fi
 
@@ -110,8 +139,14 @@ fi
 
 # After we sourced our variables, set our tag
 [ ! -z "${DOCKER_TAG}" ] && {
-    echo "Docker Tag: ${DOCKER_TAG}"
-    IMAGE_NAME_OUT="${IMAGE_NAME_OUT}:${DOCKER_TAG} ${IMAGE_NAME_OUT}:latest";
+    echo "Docker Tag: ${DOCKER_TAG}";
+    [[ "${TAG_LATEST}" == "true" ]] && { 
+      IMAGE_NAME_OUT="${IMAGE_NAME_OUT}:${DOCKER_TAG} ${IMAGE_NAME_OUT}:latest"; 
+      } || {
+        IMAGE_NAME_OUT="${IMAGE_NAME_OUT}:${DOCKER_TAG}";
+      }
+  } || {
+    DOCKER_TAG='latest';
   }
 
 [ "${CROSS_BUILD}" == "true" ] && {

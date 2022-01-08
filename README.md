@@ -8,18 +8,21 @@ There is so much it can do and too much to cover here but check out the links ab
 
 ## Building
 
-```
-1) Open Terminal
-2) Type: ./build.sh
-3) ... success?
-```
-This uses my custom build script which will build for your system without modification but you are free to override or change anything you wish.
+You can build this on a local Docker machine quite easily by just typing `./build.sh`
 
-Inside the script you can use certain `pre-set` overrides such as:
-* "CROSS_BUILD_OVERRIDE" which accepts true or false.
-* "IMAGE_UPLOAD_OVERRIDE" which accepts true or false.
-* "IMAGE_NAME_OVERRIDE" which accepts any custom image name you want to use.
-* "DOCKER_REGISTRY_OVERRIDE" which accepts any custom docker registry such as your own.
+### Additional Script Commands
+```
+* ~~ Any of these flags may be combined ~~
+* 'build.sh -n' sets no cache so it always pulls latest containers
+* 'build.sh -c' sets crossbuilding between all supported Linux platforms
+* 'build.sh -l' sets current build as latest
+* 'build.sh -p' force pulls latest of every Docker image
+* 'build.sh -u' Uploads the image to the registry
+* 'build.sh -r docker-registry' Sets a docker registry
+* 'build.sh -s source.sh' sets a script to source variables from
+* 'build.sh -i name-of-image' overwrites the pre-set image name used for building
+* 'build.sh -f Dockerfile' OPTIONAL - allows you to point this script to a different Dockerfile
+```
 
 ## Running with Docker Compose
 I have included an example inside "examples" but for TL;DR:
@@ -50,3 +53,5 @@ Contributions and feedback welcome, in world or [email](mailto:jason@fixedbit.co
 Me in Second Life: [Coal Edge](https://my.secondlife.com/coal.edge)
 
 Prebuilt Docker Image: [fixedbit/corrade](https://hub.docker.com/r/fixedbit/corrade)
+
+[Latest Changes/Updates](https://github.com/FixedBit/docker-corrade/blob/main/CHANGELOG.md)
