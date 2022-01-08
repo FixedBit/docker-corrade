@@ -5,8 +5,8 @@ LABEL maintainer=jason@fixedbit.com
 ARG CORRADE_VERSION
 
 # ENVs are uusable during building AND stay in the final container
-ENV CORRADE_UID=999 \
-    CORRADE_GID=999 \
+ENV CORRADE_UID=1000 \
+    CORRADE_GID=1000 \
     CORRADE_USER=corrade \
     CORRADE_HOME=/corrade \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \

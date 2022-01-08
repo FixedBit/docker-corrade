@@ -1,5 +1,11 @@
 # Change Log for "Docker Corrade"
 
+## [2022-01-08]
+### Changed
+- Fixed the run file so that it fixes permissions and loads in default configuration files if none are found
+- Updated Dockerfile to use user 1000 since... Well I do not know why it wasn't before!
+- Publishing this at 11:30pm on the 7th and putting the 8th just because I feel like being in the future!
+
 ## [2022-01-07]
 ### Added
 - "CHANGELOG.md" to help keep track of changes to this build setup
