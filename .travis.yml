@@ -12,4 +12,4 @@ before_install:
 script:
   - docker login -u "${DOCKER_USERNAME}" -p "${DOCKER_PASSWORD}"
   - docker buildx create --name cross_build --driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000 --use
-  - bash build.sh
+  - bash ./build.sh -c -l -u -r fixedbit
