@@ -28,7 +28,7 @@ ARG PACKAGES="procps tini gosu"
 ARG EXTRA_PACKAGES="unzip curl"
 
 # This is our setup magic
-RUN apt update; apt install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES; \
+RUN apt-get update; apt-get install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES; \
   # Detect our ARCH; \
   dpkgArch="$(dpkg --print-architecture)"; ARCH=; \
   case "${dpkgArch##*-}" in \
@@ -49,8 +49,8 @@ RUN apt update; apt install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES
   # Fix ownership and cleanup; \
   chown -R corrade:corrade /corrade /config; \
   rm -rf /opt/corrade.zip; \
-  apt autoremove -y; \
-  apt remove --purge -y $EXTRA_PACKAGES; \
+  apt-get autoremove -y; \
+  apt-get remove --purge -y $EXTRA_PACKAGES; \
   rm -rf /var/lib/apt/lists/*; \
   chmod +x /sbin/run; 
 
