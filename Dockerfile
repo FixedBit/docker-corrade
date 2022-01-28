@@ -1,4 +1,4 @@
-FROM mono:slim
+FROM debian:bullseye-slim
 LABEL maintainer=jason@fixedbit.com
 
 # Passed from our source script
@@ -24,8 +24,8 @@ RUN groupadd --gid $CORRADE_GID $CORRADE_USER \
 ADD ./files/run.sh /sbin/run       
 
 # ARGs are used and stored just for the container build
-ARG PACKAGES="procps tini gosu"
-ARG EXTRA_PACKAGES="unzip curl"
+ARG PACKAGES="procps tini gosu libicu-dev"
+ARG EXTRA_PACKAGES="unzip curl ca-certificates"
 
 # This is our setup magic
 RUN apt-get update; apt-get install -y --no-install-recommends $PACKAGES $EXTRA_PACKAGES; \
@@ -59,7 +59,7 @@ VOLUME ["/config", "/corrade/Cache", "/corrade/State", "/corrade/Logs", "/corrad
 WORKDIR /corrade
 
 # Expose our ports
-EXPOSE 54377 8080
+EXPOSE 54377 8080 8085 8088 1883
 
 # This combined with Tini allows us to intercept kill commands from Docker gracefully
 STOPSIGNAL SIGINT
