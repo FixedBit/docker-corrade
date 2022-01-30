@@ -9,8 +9,8 @@ ENV CORRADE_UID=1000 \
     CORRADE_GID=1000 \
     CORRADE_USER=corrade \
     CORRADE_HOME=/corrade \
-    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
-    CORRADE_VERSION=$CORRADE_VERSION
+    CORRADE_VERSION=$CORRADE_VERSION \
+    CORRADE_BIND_CONFIG=false
 
 # Add our user and group
 RUN groupadd --gid $CORRADE_GID $CORRADE_USER \
@@ -46,6 +46,10 @@ RUN apt-get update; apt-get install -y --no-install-recommends $PACKAGES $EXTRA_
   [ ! -d /corrade/Logs ] && mkdir /corrade/Logs; \
   [ ! -d /corrade/Databases ] && mkdir /corrade/Databases; \
   [ ! -d /config ] && mkdir /config; \
+  # Copy over defaults to main files; \
+  cp /corrade/Configuration.xml.default /corrade/Configuration.xml; \
+  cp /corrade/Nucleus.xml.default /corrade/Nucleus.xml; \
+  cp /corrade/Log4Net.config.default /corrade/Log4Net.config; \
   # Fix ownership and cleanup; \
   chown -R corrade:corrade /corrade /config; \
   rm -rf /opt/corrade.zip; \

@@ -92,7 +92,7 @@ while (( "${#}" )); do
             shift
             ;;
         -i|--image)
-            [[ ${2} != -* && ! -z ${2} ]] && { IMAGE_NAME_OUT="-t ${2}"; echo "Using image name: ${2}"; } || { ERRORS+=("Invalid image name passed to -i"); }
+            [[ ${2} != -* && ! -z ${2} ]] && { IMAGE_NAME="${2}"; echo "Using image name: ${2}"; } || { ERRORS+=("Invalid image name passed to -i"); }
             shift
             ;;
         -f|--file)
@@ -124,14 +124,22 @@ while (( "${#}" )); do
     shift
 done
 
+# Check if we have a source file set and it exists
+if [[ ! -v "${SOURCE_FILE}" ]] && [[ -f "${SOURCE_FILE}" ]]; then
+    echo "Sourcing '${SOURCE_FILE}'"
+    source "${SOURCE_FILE}"
+fi
+
 # If DOCKER_REGISTRY IS blank, IMAGE_NAME_OUT NOT blank and IMAGE_NAME NOT blank
-if [ -z "${DOCKER_REGISTRY}" ] && [ -z "${IMAGE_NAME_OUT}" ] && [ ! -z "${IMAGE_NAME}" ]; then
-    IMAGE_NAME_OUT="-t ${IMAGE_NAME}"
+if [[ -z "${DOCKER_REGISTRY}" ]] && [[ -z "${IMAGE_NAME_OUT}" ]] && [[ ! -z "${IMAGE_NAME}" ]]; then
+    IMAGE_NAME_OUT="-t ${IMAGE_NAME} -t ${IMAGE_NAME}:${CORRADE_VERSION}"
+    [[ "${TAG_LATEST}" == "true" ]] && { IMAGE_NAME_OUT="${IMAGE_NAME_OUT} -t ${IMAGE_NAME}:latest"; }
 # Else if IMAGE_NAME_OUT IS blank, IMAGE_NAME NOT blank and DOCKER_REGISTRY NOT blank
 elif [ -z "${IMAGE_NAME_OUT}" ] && [ ! -z "${IMAGE_NAME}" ] && [ ! -z "${DOCKER_REGISTRY}" ]; then
-    IMAGE_NAME_OUT="-t ${DOCKER_REGISTRY}/${IMAGE_NAME}"
+    IMAGE_NAME_OUT="-t ${DOCKER_REGISTRY}/${IMAGE_NAME} -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${CORRADE_VERSION}"
+    [[ "${TAG_LATEST}" == "true" ]] && { IMAGE_NAME_OUT="${IMAGE_NAME_OUT} -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"; }
 # Check one final time to make sure they are set
-elif [ -z "${IMAGE_NAME_OUT}" ] && [ -z "${IMAGE_NAME}" ]; then
+elif [[ -z "${IMAGE_NAME_OUT}" ]] && [[ -z "${IMAGE_NAME}" ]]; then
     ERRORS+=("You must pass an image name in with '-i' or set 'IMAGE_NAME' in ${SCRIPT_NAME}")
 fi
 
@@ -143,29 +151,15 @@ if [[ ! -z ${ERRORS} ]]; then
     exit 1
 fi
 
-# Check if we have a source file set and it exists
-if [ ! -v "${SOURCE_FILE}" ] && [ -f "${SOURCE_FILE}" ]; then
-    echo "Sourcing '${SOURCE_FILE}'"
-    source "${SOURCE_FILE}"
-fi
+echo "${IMAGE_NAME_OUT}"
+#exit 0;
 
-# After we sourced our variables, set our tag
-[ ! -z "${DOCKER_TAG}" ] && {
-    echo "Docker Tag: ${DOCKER_TAG}";
-    [[ "${TAG_LATEST}" == "true" ]] && { 
-      IMAGE_NAME_OUT="${IMAGE_NAME_OUT}:${DOCKER_TAG} ${IMAGE_NAME_OUT}:latest"; 
-      } || {
-        IMAGE_NAME_OUT="${IMAGE_NAME_OUT}:${DOCKER_TAG}";
-      }
-  } || {
-    DOCKER_TAG='latest';
-  }
-
+# Check if we crossbuild or not, otherwise do a normal build and optional push
 [ "${CROSS_BUILD}" == "true" ] && {
      [ "${IMAGE_UPLOAD}" == "true" ] && { EXTRA_CROSS_OPTS='--push'; } || { EXTRA_CROSS_OPTS=''; };
      BUILD_COMMAND="docker buildx build --build-arg CORRADE_VERSION=${CORRADE_VERSION} --platform ${BUILD_ARCHS} ${OPTS}${IMAGE_NAME_OUT} ${EXTRA_CROSS_OPTS} ${DOCKER_FILE_LOCATION}"; 
    } || {
-     BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${IMAGE_NAME_OUT} ${DOCKER_FILE_LOCATION}"
+     BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${IMAGE_NAME_OUT} ${DOCKER_FILE_LOCATION}";
    }
 
 [ ! -d ${BUILD_LOG_DIR} ] && mkdir -p ${BUILD_LOG_DIR}
@@ -179,8 +173,14 @@ printf "\n\n*** BUILDING IMAGE ***\n\n" >> ${BUILD_LOG}
 RESULT=$?
 echo "BUILD RESULT: ${RESULT}"
 if [ ${RESULT} -eq 0 ] && [ "${IMAGE_UPLOAD}" == "true" ] && [ "${CROSS_BUILD}" != "true" ] && [ ! -z "${DOCKER_REGISTRY}" ]; then
-  printf "\n\n*** PUSHING IMAGE ***\n\n" >> ${BUILD_LOG}
-  docker push ${DOCKER_REGISTRY}/${IMAGE_NAME} >> ${BUILD_LOG}
+  [[ ! -z "${DOCKER_REGISTRY}" ]] && {
+    PUSH_IMAGE_NAME="${DOCKER_REGISTRY}/${IMAGE_NAME}";
+  } || {
+    PUSH_IMAGE_NAME="${IMAGE_NAME}";
+  }
+
+  printf "\n\n*** PUSHING IMAGE \"${PUSH_IMAGE_NAME}\" ***\n\n" >> ${BUILD_LOG}
+  docker push -a ${PUSH_IMAGE_NAME} >> ${BUILD_LOG}
 elif [ ${RESULT} -gt 0 ]; then
     printf "\n\n*** Build FAILED ***\n\n"
 else
