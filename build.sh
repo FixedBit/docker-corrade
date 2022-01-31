@@ -124,26 +124,37 @@ while (( "${#}" )); do
     shift
 done
 
-# Check if we have a source file set and it exists
-if [[ ! -v "${SOURCE_FILE}" ]] && [[ -f "${SOURCE_FILE}" ]]; then
+# Check if we have a source file exists
+if [ -f "${SOURCE_FILE}" ]; then
     echo "Sourcing '${SOURCE_FILE}'"
     source "${SOURCE_FILE}"
 fi
 
-# If DOCKER_REGISTRY IS blank, IMAGE_NAME_OUT NOT blank and IMAGE_NAME NOT blank
-if [[ -z "${DOCKER_REGISTRY}" ]] && [[ -z "${IMAGE_NAME_OUT}" ]] && [[ ! -z "${IMAGE_NAME}" ]]; then
-    IMAGE_NAME_OUT="-t ${IMAGE_NAME} -t ${IMAGE_NAME}:${CORRADE_VERSION}"
-    [[ "${TAG_LATEST}" == "true" ]] && { IMAGE_NAME_OUT="${IMAGE_NAME_OUT} -t ${IMAGE_NAME}:latest"; }
-# Else if IMAGE_NAME_OUT IS blank, IMAGE_NAME NOT blank and DOCKER_REGISTRY NOT blank
-elif [ -z "${IMAGE_NAME_OUT}" ] && [ ! -z "${IMAGE_NAME}" ] && [ ! -z "${DOCKER_REGISTRY}" ]; then
-    IMAGE_NAME_OUT="-t ${DOCKER_REGISTRY}/${IMAGE_NAME} -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${CORRADE_VERSION}"
-    [[ "${TAG_LATEST}" == "true" ]] && { IMAGE_NAME_OUT="${IMAGE_NAME_OUT} -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"; }
-# Check one final time to make sure they are set
-elif [[ -z "${IMAGE_NAME_OUT}" ]] && [[ -z "${IMAGE_NAME}" ]]; then
+# If DOCKER_REGISTRY IS blank and IMAGE_NAME is NOT blank
+if [[ -z "${DOCKER_REGISTRY}" && ! -z "${IMAGE_NAME}" ]]; then
+    BUILD_TAGS+=("${IMAGE_NAME}:${CORRADE_VERSION}")
+    [ "${TAG_LATEST}" == "true" ] && BUILD_TAGS+=("${IMAGE_NAME}:latest")
+# Else if IMAGE_NAME NOT blank and DOCKER_REGISTRY NOT blank
+elif [[ ! -z "${IMAGE_NAME}" && ! -z "${DOCKER_REGISTRY}" ]]; then
+    BUILD_TAGS+=("${DOCKER_REGISTRY}/${IMAGE_NAME}:${CORRADE_VERSION}")
+    [ "${TAG_LATEST}" == "true" ] && BUILD_TAGS+=("${DOCKER_REGISTRY}/${IMAGE_NAME}:latest")
+# If no image name is set then we error out
+elif [ -z "${IMAGE_NAME}" ]; then
     ERRORS+=("You must pass an image name in with '-i' or set 'IMAGE_NAME' in ${SCRIPT_NAME}")
 fi
 
-if [[ ! -z ${ERRORS} ]]; then
+# Check if we have tags to name our docker image and no other errors
+if [ "${#BUILD_TAGS[@]}" -gt 0 ]; then
+    # Generate our BUILD_TAG_OUT used by the build command
+    for buildtag in "${BUILD_TAGS[@]}"; do
+        BUILD_TAG_OUT="${BUILD_TAG_OUT} -t ${buildtag}"
+    done
+else
+    ERRORS+=("There were no tags for this script to build")
+fi
+
+# Print out our errors if we have any
+if [ ! -z ${ERRORS} ]; then
     printf "\n~~ The following Errors Were Found ~~\n"
     for error in "${ERRORS[@]}"; do
         printf "\n~ ${error}\n"
@@ -151,15 +162,12 @@ if [[ ! -z ${ERRORS} ]]; then
     exit 1
 fi
 
-echo "${IMAGE_NAME_OUT}"
-#exit 0;
-
 # Check if we crossbuild or not, otherwise do a normal build and optional push
 [ "${CROSS_BUILD}" == "true" ] && {
      [ "${IMAGE_UPLOAD}" == "true" ] && { EXTRA_CROSS_OPTS='--push'; } || { EXTRA_CROSS_OPTS=''; };
-     BUILD_COMMAND="docker buildx build --build-arg CORRADE_VERSION=${CORRADE_VERSION} --platform ${BUILD_ARCHS} ${OPTS}${IMAGE_NAME_OUT} ${EXTRA_CROSS_OPTS} ${DOCKER_FILE_LOCATION}"; 
+     BUILD_COMMAND="docker buildx build --build-arg CORRADE_VERSION=${CORRADE_VERSION} --platform ${BUILD_ARCHS} ${OPTS}${BUILD_TAG_OUT} ${EXTRA_CROSS_OPTS} ${DOCKER_FILE_LOCATION}"; 
    } || {
-     BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${IMAGE_NAME_OUT} ${DOCKER_FILE_LOCATION}";
+     BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${BUILD_TAG_OUT} ${DOCKER_FILE_LOCATION}";
    }
 
 [ ! -d ${BUILD_LOG_DIR} ] && mkdir -p ${BUILD_LOG_DIR}
@@ -171,16 +179,12 @@ printf "\n\nTAIL TIMESTAMP ${TIMESTAMP}\n\n" >> ${BUILD_LOG}
 printf "\n\n*** BUILDING IMAGE ***\n\n" >> ${BUILD_LOG}
 [ ! -z "${BUILD_COMMAND}" ] && { eval ${BUILD_COMMAND} 2>${BUILD_LOG} 1>&2; } || { echo "No build command found" >> ${BUILD_LOG}; }
 RESULT=$?
-echo "BUILD RESULT: ${RESULT}"
-if [ ${RESULT} -eq 0 ] && [ "${IMAGE_UPLOAD}" == "true" ] && [ "${CROSS_BUILD}" != "true" ] && [ ! -z "${DOCKER_REGISTRY}" ]; then
-  [[ ! -z "${DOCKER_REGISTRY}" ]] && {
-    PUSH_IMAGE_NAME="${DOCKER_REGISTRY}/${IMAGE_NAME}";
-  } || {
-    PUSH_IMAGE_NAME="${IMAGE_NAME}";
-  }
-
-  printf "\n\n*** PUSHING IMAGE \"${PUSH_IMAGE_NAME}\" ***\n\n" >> ${BUILD_LOG}
-  docker push -a ${PUSH_IMAGE_NAME} >> ${BUILD_LOG}
+if [[ ${RESULT} -eq 0 && "${IMAGE_UPLOAD}" == "true" && "${CROSS_BUILD}" != "true" && "${#BUILD_TAGS[@]}" -gt 0 ]]; then
+    # Push all of our tagged images to the registry
+    for buildtag in "${BUILD_TAGS[@]}"; do
+        printf "\n\n*** PUSHING IMAGE \"${buildtag}\" ***\n\n" >> ${BUILD_LOG}
+        docker push ${buildtag} >> ${BUILD_LOG}
+    done
 elif [ ${RESULT} -gt 0 ]; then
     printf "\n\n*** Build FAILED ***\n\n"
 else

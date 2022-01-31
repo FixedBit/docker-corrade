@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  corrade:
+    image: fixedbit/corrade:latest
+    container_name: corrade
+    tty: true
+    restart: unless-stopped
+    ports:
+      - "54377:54377"
+    environment:
+      # Tells the container to use the new method of direct bind to config files
+      CORRADE_BIND_CONFIG: "true"
+    volumes:
+      # THESE TWO FILES MUST BE PRESENT OR IT WILL NOT WORK
+      - "${PWD}/CorradeConfiguration.xml:/corrade/CorradeConfiguration.xml"
+      - "${PWD}/NucleusConfiguration.xml:/corrade/NucleusConfiguration.xml"
+      # These files and directories are auto created
+      - "${PWD}/data/Cache:/corrade/Cache"
+      - "${PWD}/data/Logs:/corrade/Logs"
+      - "${PWD}/data/State:/corrade/State"
+      - "${PWD}/data/Databases:/corrade/Databases"

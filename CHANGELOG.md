@@ -1,5 +1,14 @@
 # Change Log for "Docker Corrade"
 
+## [2022-01-31]
+### Changed
+- Fixed some minor bugs in the build.sh script
+- Added some better checking into the build.sh script to handle building and pushing tags
+- Changed docker-compose example to use ${PWD} for greater compatibility
+### Added
+- Migration code per the Corrade team to handle the new Configuration file formatting
+- Added a docker-compose version of the config to show example of binding existing config files into run.sh
+
 ## [2022-01-08]
 ### Changed
 - Fixed the run file so that it fixes permissions and loads in default configuration files if none are found

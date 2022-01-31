@@ -3,37 +3,45 @@
 
 # Check if we are binding the config files directly to the container, we default to false
 if [[ "${CORRADE_BIND_CONFIG}" != "true" ]]; then
-    # Remove the original files and link with our user provided configs (if found)
-    echo "Fixing up Configuration.xml"
-    [ -f /config/Configuration.xml ] && {
-        [ -f /corrade/Configuration.xml ] && rm /corrade/Configuration.xml;
-        ln -s /config/Configuration.xml /corrade/Configuration.xml;
-    } || {
-        [ -f /corrade/Configuration.xml.default ] && cp /corrade/Configuration.xml.default /config/Configuration.xml;
-        ln -s /config/Configuration.xml /corrade/Configuration.xml;
+    # Due to the new upgrade from the Corrade team, we check for old files and run the required migrations
+    [ -f /config/Configuration.xml ] && { 
+        echo "Performing Corrade Configuration Migration"
+        mv /config/Configuration.xml /config/CorradeConfiguration.xml; 
+        sed -i 's/Configuration/CorradeConfiguration/g' /config/CorradeConfiguration.xml;
+    }
+    [ -f /config/Nucleus.xml ] && { 
+        echo "Performing Nucleus Configuration Migration"
+        mv /config/Nucleus.xml /config/NucleusConfiguration.xml; 
+        sed -i 's/Configuration/NucleusConfiguration/g' /config/NucleusConfiguration.xml;
     }
 
-    echo "Fixing up Nucleus.xml"
-    [ -f /config/Nucleus.xml ] && {
-        [ -f /corrade/Nucleus.xml ] && rm /corrade/Nucleus.xml;
-        ln -s /config/Nucleus.xml /corrade/Nucleus.xml;
+    # Remove the original files and link with our user provided configs (if found)
+    echo "Fixing up CorradeConfiguration.xml"
+    [ -f /config/CorradeConfiguration.xml ] && {
+        [ -f /corrade/CorradeConfiguration.xml ] && rm /corrade/CorradeConfiguration.xml;
+        ln -sf /config/CorradeConfiguration.xml /corrade/CorradeConfiguration.xml;
     } || {
-        [ -f /corrade/Nucleus.xml.default ] && cp /corrade/Nucleus.xml.default /config/Nucleus.xml;
-        ln -s /config/Nucleus.xml /corrade/Nucleus.xml;
+        [ -f /corrade/CorradeConfiguration.xml.default ] && cp /corrade/CorradeConfiguration.xml.default /config/CorradeConfiguration.xml;
+        ln -sf /config/CorradeConfiguration.xml /corrade/CorradeConfiguration.xml;
+    }
+
+    echo "Fixing up NucleusConfiguration.xml"
+    [ -f /config/NucleusConfiguration.xml ] && {
+        [ -f /corrade/NucleusConfiguration.xml ] && rm /corrade/NucleusConfiguration.xml;
+        ln -sf /config/NucleusConfiguration.xml /corrade/NucleusConfiguration.xml;
+    } || {
+        [ -f /corrade/NucleusConfiguration.xml.default ] && cp /corrade/NucleusConfiguration.xml.default /config/NucleusConfiguration.xml;
+        ln -sf /config/NucleusConfiguration.xml /corrade/NucleusConfiguration.xml;
     }
 
     echo "Fixing up Log4Net.config"
     [ -f /config/Log4Net.config ] && {
         [ -f /corrade/Log4Net.config ] && rm /corrade/Log4Net.config;
-        ln -s /config/Log4Net.config /corrade/Log4Net.config;
+        ln -sf /config/Log4Net.config /corrade/Log4Net.config;
     } || {
         [ -f /corrade/Log4Net.config.default ] && cp /corrade/Log4Net.config.default /config/Log4Net.config;
-        ln -s /config/Log4Net.config /corrade/Log4Net.config;
+        ln -sf /config/Log4Net.config /corrade/Log4Net.config;
     }
-# else
-#     [[ -f /corrade/Log4Net.config.default && ! -f /corrade/Log4Net.config ]] && cp /corrade/Log4Net.config.default /corrade/Log4Net.config;
-#     [[ -f /corrade/Configuration.xml.default && ! -f /corrade/Configuration.xml ]] && cp /corrade/Configuration.xml.default /corrade/Configuration.xml;
-#     [[ -f /corrade/Nucleus.xml.default && ! -f /corrade/Nucleus.xml ]] && cp /corrade/Nucleus.xml.default /corrade/Nucleus.xml;
 fi # End of CORRADE_BIND_CONFIG check
 
 echo "Fixing Permissions on needed folders"

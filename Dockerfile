@@ -46,10 +46,6 @@ RUN apt-get update; apt-get install -y --no-install-recommends $PACKAGES $EXTRA_
   [ ! -d /corrade/Logs ] && mkdir /corrade/Logs; \
   [ ! -d /corrade/Databases ] && mkdir /corrade/Databases; \
   [ ! -d /config ] && mkdir /config; \
-  # Copy over defaults to main files; \
-  cp /corrade/Configuration.xml.default /corrade/Configuration.xml; \
-  cp /corrade/Nucleus.xml.default /corrade/Nucleus.xml; \
-  cp /corrade/Log4Net.config.default /corrade/Log4Net.config; \
   # Fix ownership and cleanup; \
   chown -R corrade:corrade /corrade /config; \
   rm -rf /opt/corrade.zip; \
