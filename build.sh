@@ -3,8 +3,9 @@
 # Author: Jason Hawks
 # Contact: jason *at* fixedbit.com
 
-# Note: This script can use cross building from Docker, enable it in this script and
-# run this command once to set it up: docker buildx create --name cross_build --driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000 --use 
+# Run this to install the required buildx images: 
+# docker run -it --rm --privileged tonistiigi/binfmt --install all
+# docker buildx create --name cross_build --driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000 --use 
 
 set -e
 
@@ -169,6 +170,9 @@ fi
    } || {
      BUILD_COMMAND="docker build --build-arg CORRADE_VERSION=${CORRADE_VERSION} ${OPTS}${BUILD_TAG_OUT} ${DOCKER_FILE_LOCATION}";
    }
+
+# Debug output
+echo "Build Command: $BUILD_COMMAND"
 
 [ ! -d ${BUILD_LOG_DIR} ] && mkdir -p ${BUILD_LOG_DIR}
 [ ! -f ${BUILD_LOG} ] && touch ${BUILD_LOG}
